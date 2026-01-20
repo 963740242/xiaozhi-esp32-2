@@ -1,0 +1,23 @@
+{
+    "target": "esp32p4",
+    "builds": [
+        {
+            "name": "waveshare-p4-wifi6-touch-lcd-4b",
+            "sdkconfig_append": [
+                "CONFIG_USE_WECHAT_MESSAGE_STYLE=n",
+                "CONFIG_USE_DEVICE_AEC=y",
+                "CONFIG_CAMERA_OV5647=y",
+                "CONFIG_CAMERA_OV5647_AUTO_DETECT_MIPI_INTERFACE_SENSOR=y",
+                "CONFIG_CAMERA_OV5647_MIPI_RAW8_800X800_50FPS=y",
+                "CONFIG_XIAOZHI_ENABLE_CAMERA_ENDIANNESS_SWAP=y",
+                "CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=n",
+                "CONFIG_WIFI_RMT_STATIC_RX_BUFFER_NUM=10",
+                "CONFIG_WIFI_RMT_DYNAMIC_RX_BUFFER_NUM=24",
+                "CONFIG_WIFI_RMT_STATIC_TX_BUFFER_NUM=10",
+                "CONFIG_ESP_HOSTED_P4_DEV_BOARD_FUNC_BOARD=y",
+                "CONFIG_ESP_HOSTED_SDIO_HOST_INTERFACE=y",
+                "CONFIG_ESP_HOSTED_SDIO_4_BIT_BUS=y"
+            ]
+        }
+    ]
+}
