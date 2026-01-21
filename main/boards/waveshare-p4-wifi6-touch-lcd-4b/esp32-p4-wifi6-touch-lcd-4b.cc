@@ -13,7 +13,7 @@
 #include "esp_lcd_mipi_dsi.h"
 #include "esp_ldo_regulator.h"
 
-#include "esp_lcd_st7703.h"
+#include "esp_lcd_jd9161.h"
 
 #include <esp_log.h>
 #include <driver/i2c_master.h>
@@ -23,14 +23,16 @@
 
 #define TAG "WaveshareEsp32p44b"
 
-class WaveshareEsp32p44b : public WifiBoard {
+class WaveshareEsp32p44b : public WifiBoard
+{
 private:
     i2c_master_bus_handle_t i2c_bus_;
     Button boot_button_;
     Display *display_;
-    Esp32Camera* camera_ = nullptr;
+    Esp32Camera *camera_ = nullptr;
 
-    void InitializeCodecI2c() {
+    void InitializeCodecI2c()
+    {
         // Initialize I2C peripheral
         i2c_master_bus_config_t i2c_bus_cfg = {
             .i2c_port = I2C_NUM_0,
@@ -41,13 +43,14 @@ private:
             .intr_priority = 0,
             .trans_queue_depth = 0,
             .flags = {
-                .enable_internal_pullup = true,
+                .enable_internal_pullup = 1,
             },
         };
         ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_cfg, &i2c_bus_));
     }
 
-    static esp_err_t bsp_enable_dsi_phy_power(void) {
+    static esp_err_t bsp_enable_dsi_phy_power(void)
+    {
 #if MIPI_DSI_PHY_PWR_LDO_CHAN > 0
         // Turn on the power for MIPI DSI PHY, so it can go from "No Power" state to "Shutdown" state
         static esp_ldo_channel_handle_t phy_pwr_chan = NULL;
@@ -62,7 +65,8 @@ private:
         return ESP_OK;
     }
 
-    void InitializeLCD() {
+    void InitializeLCD()
+    {
         bsp_enable_dsi_phy_power();
         esp_lcd_panel_io_handle_t io = NULL;
         esp_lcd_panel_handle_t disp_panel = NULL;
@@ -71,18 +75,20 @@ private:
         esp_lcd_dsi_bus_config_t bus_config = {
             .bus_id = 0,
             .num_data_lanes = 2,
+            // .phy_clk_src = 0,
             .lane_bit_rate_mbps = 295,
         };
         esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus);
 
         ESP_LOGI(TAG, "Install MIPI DSI LCD control panel");
         // we use DBI interface to send LCD commands and parameters
-        esp_lcd_dbi_io_config_t dbi_config = ST7703_PANEL_IO_DBI_CONFIG();
+        esp_lcd_dbi_io_config_t dbi_config = JD9161_PANEL_IO_DBI_CONFIG();
         esp_lcd_new_panel_io_dbi(mipi_dsi_bus, &dbi_config, &io);
 
         esp_lcd_dpi_panel_config_t dpi_config = {
             .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
             .dpi_clock_freq_mhz = 16,
+            // .virtual_channel = 0,
             .pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565,
             .num_fbs = 1,
             .video_timing = {
@@ -99,11 +105,12 @@ private:
                 .use_dma2d = true,
             },
         };
-        st7703_vendor_config_t vendor_config = {
+        jd9161_vendor_config_t vendor_config = {
 
             .mipi_config = {
                 .dsi_bus = mipi_dsi_bus,
                 .dpi_config = &dpi_config,
+                .lane_num = 2,
             },
             .flags = {
                 .use_mipi_interface = 1,
@@ -116,15 +123,17 @@ private:
             .bits_per_pixel = 16,
             .vendor_config = &vendor_config,
         };
-        esp_lcd_new_panel_st7703(io, &lcd_dev_config, &disp_panel);
-        esp_lcd_panel_reset(disp_panel);
-        esp_lcd_panel_init(disp_panel);
+        ESP_ERROR_CHECK(esp_lcd_new_panel_jd9161(io, &lcd_dev_config, &disp_panel));
+        ESP_ERROR_CHECK(esp_lcd_panel_reset(disp_panel));
+        ESP_ERROR_CHECK(esp_lcd_panel_init(disp_panel));
+        ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(disp_panel, true));
 
         display_ = new MipiLcdDisplay(io, disp_panel, DISPLAY_WIDTH, DISPLAY_HEIGHT,
-                                       DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
+                                      DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
     }
-    
-    void InitializeCamera() {
+
+    void InitializeCamera()
+    {
         esp_video_init_csi_config_t base_csi_config = {
             .sccb_config = {
                 .init_sccb = false,
@@ -132,69 +141,71 @@ private:
                 .freq = 400000,
             },
             .reset_pin = GPIO_NUM_NC,
-            .pwdn_pin  = GPIO_NUM_NC,
+            .pwdn_pin = GPIO_NUM_NC,
         };
 
         esp_video_init_config_t cam_config = {
-            .csi      = &base_csi_config,
+            .csi = &base_csi_config,
         };
 
         camera_ = new Esp32Camera(cam_config);
     }
-    void InitializeButtons() {
-        boot_button_.OnClick([this]() {
+    void InitializeButtons()
+    {
+        boot_button_.OnClick([this]()
+                             {
             auto& app = Application::GetInstance();
-            app.ToggleChatState();
-        });
+            app.ToggleChatState(); });
 
-        boot_button_.OnMultipleClick([this]() {
+        boot_button_.OnMultipleClick([this]()
+                                     {
             SsidManager::GetInstance().Clear();
-            EnterWifiConfigMode();
-        }, 3);
+            EnterWifiConfigMode(); }, 3);
     }
 
 public:
-    WaveshareEsp32p44b() :
-        boot_button_(BOOT_BUTTON_GPIO) {
+    WaveshareEsp32p44b() : boot_button_(BOOT_BUTTON_GPIO)
+    {
         InitializeCodecI2c();
-        // InitializeLCD();
-        display_ = new NoDisplay();
+        InitializeLCD();
+        // display_ = new NoDisplay();
         // InitializeCamera();
         InitializeButtons();
-        // GetBacklight()->RestoreBrightness();
     }
 
-    virtual AudioCodec* GetAudioCodec() override {
+    virtual AudioCodec *GetAudioCodec() override
+    {
         static Es8311AudioCodec audio_codec(
-            i2c_bus_, 
-            I2C_NUM_0, 
-            AUDIO_INPUT_SAMPLE_RATE, 
+            i2c_bus_,
+            I2C_NUM_0,
+            AUDIO_INPUT_SAMPLE_RATE,
             AUDIO_OUTPUT_SAMPLE_RATE,
-            AUDIO_I2S_GPIO_MCLK, 
-            AUDIO_I2S_GPIO_BCLK, 
-            AUDIO_I2S_GPIO_WS, 
-            AUDIO_I2S_GPIO_DOUT, 
+            AUDIO_I2S_GPIO_MCLK,
+            AUDIO_I2S_GPIO_BCLK,
+            AUDIO_I2S_GPIO_WS,
+            AUDIO_I2S_GPIO_DOUT,
             AUDIO_I2S_GPIO_DIN,
-            AUDIO_CODEC_PA_PIN, 
-            AUDIO_CODEC_ES8311_ADDR
-        );
+            AUDIO_CODEC_PA_PIN,
+            AUDIO_CODEC_ES8311_ADDR);
         return &audio_codec;
     }
 
-    virtual Display *GetDisplay() override {
+    virtual Display *GetDisplay() override
+    {
         return display_;
     }
 
-    virtual Camera* GetCamera() override {
+    virtual Camera *GetCamera() override
+    {
         return camera_;
     }
 
-    virtual Backlight* GetBacklight() override {
-        // static PwmBacklight backlight(DISPLAY_BACKLIGHT_PIN, DISPLAY_BACKLIGHT_OUTPUT_INVERT);
-        // return &backlight;
-        return nullptr;
+    virtual Backlight *GetBacklight() override
+    {
+        static PwmBacklight backlight(DISPLAY_BACKLIGHT_PIN, DISPLAY_BACKLIGHT_OUTPUT_INVERT);
+        return &backlight;
+        // return nullptr;
     }
-
 };
 
 DECLARE_BOARD(WaveshareEsp32p44b);

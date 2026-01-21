@@ -25,8 +25,8 @@
 #define DISPLAY_WIDTH 480
 #define DISPLAY_HEIGHT 480
 
-#define LCD_BIT_PER_PIXEL          (24)
-#define PIN_NUM_LCD_RST            GPIO_NUM_27
+#define LCD_BIT_PER_PIXEL          (16)
+#define PIN_NUM_LCD_RST            GPIO_NUM_NC
 
 #define DELAY_TIME_MS                      (3000)
 #define LCD_MIPI_DSI_LANE_NUM          (2)    // 2 data lanes
@@ -41,7 +41,7 @@
 #define DISPLAY_OFFSET_X  0
 #define DISPLAY_OFFSET_Y  0
 
-#define DISPLAY_BACKLIGHT_PIN GPIO_NUM_26
+#define DISPLAY_BACKLIGHT_PIN GPIO_NUM_25
 #define DISPLAY_BACKLIGHT_OUTPUT_INVERT true
 
 #endif // _BOARD_CONFIG_H_
